@@ -9,6 +9,7 @@
   "non_locking_dll_load": true,
   "can_add_to_saved_game": true,
   "can_remove_from_saved_game": true,
+  "url": "https://github.com/CesarM-Git/NoPillarsMOD",
   "oldest_tested_game_version": "0.8.3",
   "newest_tested_game_version": "0.8.3a"
 }
