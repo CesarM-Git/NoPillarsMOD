@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using Mafi;
 using Mafi.Collections;
 using Mafi.Core;
+using Mafi.Core.Console;
 using Mafi.Core.Entities;
 using Mafi.Core.Factory.Transports;
 using Mafi.Core.GameLoop;
@@ -101,6 +103,7 @@ public sealed class NoPillarsMod : IMod, IDisposable
         CacheSupportCheckQueue();
         PatchActionCache();
         PatchUIController();
+        RegisterConsoleCommands();
         Log.Info("NoPillarsMod: All patches applied.");
     }
 
@@ -249,6 +252,60 @@ public sealed class NoPillarsMod : IMod, IDisposable
         // before the main thread reads it in InputUpdate.
         m_forceCanRemoveAction = () => m_canRemoveField.SetValue(m_uiController, true);
         m_simLoopEvents.ReadGameStateFrequent.AddNonSaveable(this, m_forceCanRemoveAction);
+    }
+
+    // ── 5. Console command — remove all pillars ───────────────────────────
+
+    private void RegisterConsoleCommands()
+    {
+        try
+        {
+            var executor = m_resolver.Resolve<GameConsoleCommandsExecutor>();
+            int count = executor.ScanObjectForConsoleCommands(this, ignoreDuplicates: true);
+            Log.Info($"NoPillarsMod: Registered {count} console command(s).");
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"NoPillarsMod: Failed to register console commands: {ex.Message}");
+        }
+    }
+
+    [ConsoleCommand(documentation: "Removes all transport pillars from the map.")]
+    private string RemoveAllPillars()
+    {
+        if (m_entitiesManager == null)
+            return "Error: EntitiesManager not available.";
+
+        var pillars = m_entitiesManager.GetAllEntitiesOfType<TransportPillar>().ToList();
+        int total = pillars.Count;
+
+        if (total == 0)
+            return "No pillars found on the map.";
+
+        int removed = 0;
+        int failed = 0;
+
+        foreach (var pillar in pillars)
+        {
+            try
+            {
+                m_entitiesManager.RemoveAndDestroyEntityNoChecks(pillar, EntityRemoveReason.Remove);
+                ClearSupportCheckQueue();
+                removed++;
+            }
+            catch (Exception ex)
+            {
+                failed++;
+                Log.Warning($"NoPillarsMod: Failed to remove pillar {pillar.Id}: {ex.Message}");
+            }
+        }
+
+        string result = $"Removed {removed}/{total} pillars.";
+        if (failed > 0)
+            result += $" ({failed} failed — check log)";
+
+        Log.Info($"NoPillarsMod: {result}");
+        return result;
     }
 
     public void MigrateJsonConfig(VersionSlim savedVersion, Dict<string, object> savedValues) { }
