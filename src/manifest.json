@@ -1,6 +1,6 @@
 {
   "id": "NoPillarsMod",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "display_name": "No Pillars Required",
   "description_short": "Disables pillar requirements for elevated pipes and belts, and allows free pillar removal.",
   "description_long": "Removes the need for pillars when building elevated pipes and conveyors. Existing pillars can always be removed with the Modify Pillars tool regardless of whether they are supporting a transport. Changes are applied to all transport prototypes at game initialization.",
