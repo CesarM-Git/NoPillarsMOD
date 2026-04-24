@@ -168,7 +168,6 @@
 		<Copy SourceFiles="$(ProjectDir)\manifest.json" DestinationFolder="$(COI_MODS)\$(TargetName)\" />
 		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(COI_MODS)\$(TargetName)\" />
 		<Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFolder="$(COI_MODS)\$(TargetName)\" Condition="'$(Configuration)' == 'Debug'" />
-		<!-- Universal zip (forward-slash paths work on Windows, Linux, and macOS) -->
-		<Exec Command="powershell -NoProfile -Command &quot;Add-Type -AssemblyName System.IO.Compression.FileSystem; $zipPath = '$(COI_MODS)\$(TargetName)_$(ManifestVersion).zip'; if (Test-Path $zipPath) { Remove-Item $zipPath }; $zip = [System.IO.Compression.ZipFile]::Open($zipPath, 'Create'); $srcDir = '$(COI_MODS)\$(TargetName)'; Get-ChildItem -Path $srcDir -Recurse -File | ForEach-Object { $entryName = '$(TargetName)/' + $_.FullName.Substring($srcDir.Length + 1).Replace('\', '/'); [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $entryName) | Out-Null }; $zip.Dispose()&quot;" />
+		<Exec Command="pwsh -NoProfile -Command &quot;Compress-Archive -Path '$(COI_MODS)\$(TargetName)' -DestinationPath '$(COI_MODS)\$(TargetName)_$(ManifestVersion).zip' -Force&quot;" />
 	</Target>
 </Project>
