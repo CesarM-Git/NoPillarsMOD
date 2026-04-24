@@ -168,6 +168,20 @@
 		<Copy SourceFiles="$(ProjectDir)\manifest.json" DestinationFolder="$(COI_MODS)\$(TargetName)\" />
 		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(COI_MODS)\$(TargetName)\" />
 		<Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFolder="$(COI_MODS)\$(TargetName)\" Condition="'$(Configuration)' == 'Debug'" />
-		<Exec Command="powershell -NoProfile -Command &quot;Compress-Archive -Path '$(COI_MODS)\$(TargetName)' -DestinationPath '$(COI_MODS)\$(TargetName)_$(ManifestVersion).zip' -Force&quot;" />
+		<!-- Windows zip (backslash paths) -->
+		<Exec Command="powershell -NoProfile -Command &quot;Compress-Archive -Path '$(COI_MODS)\$(TargetName)' -DestinationPath '$(COI_MODS)\$(TargetName)_$(ManifestVersion)_windows.zip' -Force&quot;" />
+		<!-- Linux zip (forward-slash paths via System.IO.Compression) -->
+		<Exec Command="powershell -NoProfile -Command &quot;
+			Add-Type -AssemblyName System.IO.Compression.FileSystem;
+			$$zipPath = '$(COI_MODS)\$(TargetName)_$(ManifestVersion)_linux.zip';
+			if (Test-Path $$zipPath) { Remove-Item $$zipPath };
+			$$zip = [System.IO.Compression.ZipFile]::Open($$zipPath, 'Create');
+			$$srcDir = '$(COI_MODS)\$(TargetName)';
+			Get-ChildItem -Path $$srcDir -Recurse -File | ForEach-Object {
+				$$entryName = $$_.FullName.Substring($$srcDir.Length + 1).Replace('\', '/');
+				[System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($$zip, $$_.FullName, $$entryName) | Out-Null
+			};
+			$$zip.Dispose()
+		&quot;" />
 	</Target>
 </Project>

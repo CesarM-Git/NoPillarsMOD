@@ -419,3 +419,6 @@ FodyWeavers.xsd
 
 # macOS metadata
 .DS_Store
+
+# Changelog (generated separately)
+CHANGELOG.md
