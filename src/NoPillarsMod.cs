@@ -37,12 +37,12 @@ namespace NoPillarsMod;
 ///      OccupiedTileRelative arrays are reset so subsequent calls recompute with the new
 ///      constraint set.
 ///   3. Height ceilings: Widen Layout.PlacementHeightRange on each ZipperProto / LiftProto /
-///      SorterProto to (0, 30) so they can be placed at any height (the slider in
-///      LayoutEntityPreview reads this). Also keep StaticEntityProto.VehicleGoalHeightAllowedRange
-///      in sync so trucks can still path to elevated instances. TransportPillarProto.MAX_PILLAR_HEIGHT
-///      is raised to 15 (matching the TransportPathFinder's Z-range cap) so the
-///      TransportBuildController's transportUp() cursor stops getting clamped at 5 — pipes and
-///      belts can now be raised further with the up-arrow.
+///      SorterProto / MiniZipperProto to (0, 30) so they can be placed at any height (the
+///      slider in LayoutEntityPreview reads this). Also keep
+///      StaticEntityProto.VehicleGoalHeightAllowedRange in sync so trucks can still path to
+///      elevated instances. TransportPillarProto.MAX_PILLAR_HEIGHT is raised to 16 so the
+///      TransportBuildController's transportUp() cursor cap (MAX_PILLAR_HEIGHT - 1) lands at
+///      15 — pipes and belts can now be raised that high with the up-arrow.
 ///   4. Command: Injects a cache handler for RemoveTransportPillarCmd that skips IsPillarRedundant
 ///      and clears the support-check queue to prevent transport collapse.
 ///   5. UI: Forces m_canRemove = true on TransportPillarBuildController via ReadGameStateFrequent
@@ -90,7 +90,8 @@ public sealed class NoPillarsMod : IMod, IDisposable
 
     // Height-ceiling constants — see PatchHeightCeilings.
     private const int LAYOUT_PLACEMENT_HEIGHT_MAX = 30;
-    private const int MAX_PILLAR_HEIGHT_OVERRIDE  = 15;
+    // 16 so the TransportBuildController.transportUp() clamp (MAX_PILLAR_HEIGHT - 1) lands at 15.
+    private const int MAX_PILLAR_HEIGHT_OVERRIDE  = 16;
 
     public void EarlyInit(DependencyResolver resolver) { }
 
@@ -299,9 +300,9 @@ public sealed class NoPillarsMod : IMod, IDisposable
     /// (b) <see cref="TransportPillarProto.MAX_PILLAR_HEIGHT"/> (public static readonly).
     ///     <see cref="Mafi.Unity.Ui.Controllers.TransportBuildController.transportUp"/> clamps
     ///     the placement cursor to <c>MAX_PILLAR_HEIGHT - 1</c>. Raising MAX_PILLAR_HEIGHT to
-    ///     15 lifts that clamp to 14 (matching the TransportPathFinder's hard Z-range cap of
-    ///     16 / start-Z 8 / +7 reachable). Pipes and belts can now be raised further with the
-    ///     up-arrow.
+    ///     16 lifts that clamp to 15 (the TransportPathFinder still hard-caps the Z-range at
+    ///     16 / start-Z 8 / +7 reachable per segment). Pipes and belts can now be raised that
+    ///     high with the up-arrow.
     ///
     /// All three fields are <c>readonly</c>; we set them via reflection. The protos' layouts
     /// were already baked from the original MAX_PILLAR_HEIGHT at registration time, so we
@@ -354,7 +355,7 @@ public sealed class NoPillarsMod : IMod, IDisposable
 
         var newRange = new ThicknessIRange(0, LAYOUT_PLACEMENT_HEIGHT_MAX);
 
-        int zipperCount = 0, liftCount = 0, sorterCount = 0;
+        int zipperCount = 0, liftCount = 0, sorterCount = 0, miniZipperCount = 0;
 
         foreach (var proto in protosDb.All<ZipperProto>())
             if (WidenPlacementRange(proto, proto.Layout, placementField, vehicleGoalField, newRange))
@@ -368,8 +369,19 @@ public sealed class NoPillarsMod : IMod, IDisposable
             if (WidenPlacementRange(proto, proto.Layout, placementField, vehicleGoalField, newRange))
                 sorterCount++;
 
+        // Connectors (Flat / U-shape / Molten / Pipe) are MiniZipperProto instances. They are
+        // mostly auto-built at lift ports, but the player can also drop one manually from the
+        // toolbar — and addMiniZipper() bakes the same (0, MAX_PILLAR_HEIGHT - 1) placement
+        // cap into their layout. Widen it so manual placements aren't artificially capped.
+        // MiniZipperProto does NOT implement ILayoutEntityProtoWithElevation and its layout
+        // has no LayoutTileConstraint.UsingPillar tiles, so we only touch the placement range.
+        foreach (var proto in protosDb.All<MiniZipperProto>())
+            if (WidenPlacementRange(proto, proto.Layout, placementField, vehicleGoalField, newRange))
+                miniZipperCount++;
+
         Log.Info($"NoPillarsMod: Widened PlacementHeightRange to (0, {LAYOUT_PLACEMENT_HEIGHT_MAX}) on " +
-                 $"{zipperCount} zipper(s), {liftCount} lift(s), {sorterCount} sorter(s).");
+                 $"{zipperCount} zipper(s), {liftCount} lift(s), {sorterCount} sorter(s), " +
+                 $"{miniZipperCount} connector(s).");
     }
 
     private static bool WidenPlacementRange(

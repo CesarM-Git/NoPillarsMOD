@@ -11,10 +11,11 @@ New features:
   placing pillars and without requiring pillar support.
 - No pillars for sorters: sorters share the same elevation system as
   balancers and lifts, so they also no longer place or require pillars.
-- Height ceiling removed for balancers, lifts and sorters: their
-  placement-height slider now goes up to 30 tiles above ground (was 5).
+- Height ceiling removed for balancers, lifts, sorters and connectors:
+  their placement-height slider now goes up to 30 tiles above ground
+  (was 5). Connectors covered are flat, U-shape, molten and pipe.
 - Higher cursor for pipes and belts: TransportPillarProto.MAX_PILLAR_HEIGHT
-  is raised from 6 to 15, lifting the build-cursor cap from 5 to 14.
+  is raised from 6 to 16, lifting the build-cursor cap from 5 to 15.
   The transport path-finder still hard-caps the Z-range at 16, so a
   single pipe / belt segment can climb up to about 7 tiles, but the
   cursor itself is no longer artificially limited.
@@ -23,7 +24,7 @@ Notes:
 - Existing balancers/lifts/sorters in saved games may have pillars beneath
   them auto-removed once they are considered redundant. Transports remain
   safe — the mod still clears the post-removal support-check queue.
-- Player-built pillars can now be up to 15 tiles tall (previously 6);
+- Player-built pillars can now be up to 16 tiles tall (previously 6);
   auto-built pillars are still suppressed by the mod.
 
 v1.1.0
