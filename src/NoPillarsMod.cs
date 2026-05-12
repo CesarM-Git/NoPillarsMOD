@@ -43,12 +43,18 @@ namespace NoPillarsMod;
 ///      elevated instances. TransportPillarProto.MAX_PILLAR_HEIGHT is raised to 16 so the
 ///      TransportBuildController's transportUp() cursor cap (MAX_PILLAR_HEIGHT - 1) lands at
 ///      15 — pipes and belts can now be raised that high with the up-arrow.
-///   4. Command: Injects a cache handler for RemoveTransportPillarCmd that skips IsPillarRedundant
+///   4. Load-time pruning silencer: In EarlyInit (which runs before any InitAfterLoad method
+///      per IMod's contract), flip TransportsManager.SkipPillarValidationOnLoad = true so
+///      TransportsManager.validate() skips checkPillarsState() — the pass that, on saves with
+///      existing balancer/lift/sorter pillars, would log one Error-severity "Found pillar at
+///      ... with no supported transports, removing." per stale pillar (each with a full stack
+///      trace) and auto-remove them.
+///   5. Command: Injects a cache handler for RemoveTransportPillarCmd that skips IsPillarRedundant
 ///      and clears the support-check queue to prevent transport collapse.
-///   5. UI: Forces m_canRemove = true on TransportPillarBuildController via ReadGameStateFrequent
+///   6. UI: Forces m_canRemove = true on TransportPillarBuildController via ReadGameStateFrequent
 ///      (same thread as simUpdate) so the highlight shows yellow and clicks are allowed.
 ///
-/// Patches 4 and 5 are deferred to InitState so they run AFTER InstantiateAllAndLock().
+/// Patches 5 and 6 are deferred to InitState so they run AFTER InstantiateAllAndLock().
 /// </summary>
 public sealed class NoPillarsMod : IMod, IDisposable
 {
@@ -93,7 +99,47 @@ public sealed class NoPillarsMod : IMod, IDisposable
     // 16 so the TransportBuildController.transportUp() clamp (MAX_PILLAR_HEIGHT - 1) lands at 15.
     private const int MAX_PILLAR_HEIGHT_OVERRIDE  = 16;
 
-    public void EarlyInit(DependencyResolver resolver) { }
+    /// <summary>
+    /// Runs after the dependency resolver is created but BEFORE any
+    /// <see cref="Mafi.Serialization.InitAfterLoadAttribute"/>-marked method fires
+    /// (per IMod's contract). This is our one chance to flip
+    /// <c>TransportsManager.SkipPillarValidationOnLoad</c> to <c>true</c> before
+    /// <c>TransportsManager.validate()</c> calls <c>checkPillarsState()</c>.
+    ///
+    /// Without this, every pillar that was previously supporting one of the now-stripped
+    /// balancer / lift / sorter / connector tiles logs an Error-severity
+    /// "Found pillar at ... with no supported transports, removing." with a full stack trace,
+    /// and is auto-removed during the load.
+    ///
+    /// The vanilla game already exposes this property for recovery-save imports
+    /// (RecoverySaveManger sets it to true on import). We're reusing the same flag for the
+    /// same reason: our patches change which entities count as "supporting", so the standard
+    /// load-time validation produces noise and aggressive removals. Skipping the pass
+    /// preserves whatever pillars exist in the save — stale ones can be cleared with the
+    /// <c>remove_all_pillars</c> console command.
+    /// </summary>
+    public void EarlyInit(DependencyResolver resolver)
+    {
+        try
+        {
+            var transportsManager = resolver.Resolve<TransportsManager>();
+            var prop = typeof(TransportsManager).GetProperty("SkipPillarValidationOnLoad",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
+            if (prop == null)
+            {
+                Log.Error("NoPillarsMod: TransportsManager.SkipPillarValidationOnLoad property not found!");
+                return;
+            }
+
+            prop.SetValue(transportsManager, true);
+            Log.Info("NoPillarsMod: SkipPillarValidationOnLoad = true (silences load-time pillar-pruning noise).");
+        }
+        catch (Exception ex)
+        {
+            Log.Warning($"NoPillarsMod: Failed to set SkipPillarValidationOnLoad: {ex.Message}");
+        }
+    }
 
     public void Initialize(DependencyResolver resolver, bool gameWasLoaded)
     {

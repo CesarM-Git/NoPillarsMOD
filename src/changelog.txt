@@ -20,10 +20,20 @@ New features:
   single pipe / belt segment can climb up to about 7 tiles, but the
   cursor itself is no longer artificially limited.
 
+Fixes:
+- Silenced the noisy "Found pillar at ... with no supported transports,
+  removing." Error-severity log spam (with stack traces) that previously
+  fired on save load for every pillar that had been supporting a balancer
+  / lift / sorter. The mod now sets
+  TransportsManager.SkipPillarValidationOnLoad = true during EarlyInit so
+  the load-time pillar-pruning pass is skipped entirely. Stale pillars
+  remain in the save and can be cleared with the `remove_all_pillars`
+  console command.
+
 Notes:
-- Existing balancers/lifts/sorters in saved games may have pillars beneath
-  them auto-removed once they are considered redundant. Transports remain
-  safe — the mod still clears the post-removal support-check queue.
+- Existing balancer / lift / sorter pillars are no longer auto-removed
+  on load. Use `remove_all_pillars` to clear them in one go, or remove
+  them individually with the modify-pillars tool.
 - Player-built pillars can now be up to 16 tiles tall (previously 6);
   auto-built pillars are still suppressed by the mod.
 
