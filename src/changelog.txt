@@ -1,0 +1,37 @@
+No Pillars Required — Changelog
+================================
+
+v1.2.0
+------
+New features:
+- No pillars for balancers: flat, U-shape, molten, and pipe balancers
+  (Zippers) now build without placing pillars and without requiring pillar
+  support. They can be placed elevated freely.
+- No pillars for lifts: flat lifts and U-shape lifts now build without
+  placing pillars and without requiring pillar support.
+- No pillars for sorters: sorters share the same elevation system as
+  balancers and lifts, so they also no longer place or require pillars.
+- Height ceiling removed for balancers, lifts and sorters: their
+  placement-height slider now goes up to 30 tiles above ground (was 5).
+- Higher cursor for pipes and belts: TransportPillarProto.MAX_PILLAR_HEIGHT
+  is raised from 6 to 15, lifting the build-cursor cap from 5 to 14.
+  The transport path-finder still hard-caps the Z-range at 16, so a
+  single pipe / belt segment can climb up to about 7 tiles, but the
+  cursor itself is no longer artificially limited.
+
+Notes:
+- Existing balancers/lifts/sorters in saved games may have pillars beneath
+  them auto-removed once they are considered redundant. Transports remain
+  safe — the mod still clears the post-removal support-check queue.
+- Player-built pillars can now be up to 15 tiles tall (previously 6);
+  auto-built pillars are still suppressed by the mod.
+
+v1.1.0
+------
+New features:
+- Console command `remove_all_pillars`: open the game console (`~`) and
+  type `remove_all_pillars` to instantly remove every pillar on the map.
+
+Fixes:
+- Corrected `manifest.json` version fields to use the proper
+  `min_game_version` / `max_verified_game_version` schema.
