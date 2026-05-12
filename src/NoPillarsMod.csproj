@@ -170,6 +170,8 @@
 		<Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFolder="$(COI_MODS)\$(TargetName)\" Condition="'$(Configuration)' == 'Debug'" />
 		<!-- changelog.txt (always lowercase) lives next to manifest.json in src/ and ships in the zip. -->
 		<Copy SourceFiles="$(ProjectDir)\changelog.txt" DestinationFolder="$(COI_MODS)\$(TargetName)\" Condition="Exists('$(ProjectDir)\changelog.txt')" />
+		<!-- thumbnail.png lives next to manifest.json in src/ and ships in the zip. -->
+		<Copy SourceFiles="$(ProjectDir)\thumbnail.png" DestinationFolder="$(COI_MODS)\$(TargetName)\" Condition="Exists('$(ProjectDir)\thumbnail.png')" />
 		<Exec Command="pwsh -NoProfile -Command &quot;Compress-Archive -Path '$(COI_MODS)\$(TargetName)' -DestinationPath '$(COI_MODS)\$(TargetName)_$(ManifestVersion).zip' -Force&quot;" />
 	</Target>
 </Project>
