@@ -79,6 +79,16 @@ public sealed class NoPillarsMod : IMod, IDisposable
     private FieldInfo m_canRemoveField;
     private Action m_forceCanRemoveAction;
 
+    // Idempotency guard for console-command registration. The COI IMod
+    // lifecycle in 0.8.4b re-fires OnInitState at least once after the first
+    // pass (deferred init-state phase / scene re-entry), and the second call
+    // to executor.ScanObjectForConsoleCommands logs
+    //   E ... Multiple commands with the same name: remove_all_pillars
+    // even when ignoreDuplicates: true is passed.  No actual double-
+    // registration happens, but the error spam confuses real diagnostics.
+    // See .claude/modding-patterns.md "Make the registration idempotent".
+    private bool m_consoleCommandsRegistered;
+
     public NoPillarsMod(ModManifest manifest)
     {
         Manifest = manifest;
@@ -599,10 +609,19 @@ public sealed class NoPillarsMod : IMod, IDisposable
 
     private void RegisterConsoleCommands()
     {
+        // Idempotency guard: OnInitState fires more than once in the 0.8.4b
+        // IMod lifecycle (deferred init-state pass), and ignoreDuplicates: true
+        // does NOT suppress the executor's "Multiple commands with the same
+        // name: <name>" error log on the repeat call.  The flag avoids the
+        // spam without changing registration behaviour.
+        if (m_consoleCommandsRegistered) {
+            return;
+        }
         try
         {
             var executor = m_resolver.Resolve<GameConsoleCommandsExecutor>();
             int count = executor.ScanObjectForConsoleCommands(this, ignoreDuplicates: true);
+            m_consoleCommandsRegistered = true;
             Log.Info($"NoPillarsMod: Registered {count} console command(s).");
         }
         catch (Exception ex)
